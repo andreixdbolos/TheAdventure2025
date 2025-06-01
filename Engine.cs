@@ -12,6 +12,9 @@ public class Engine
     private readonly GameRenderer _renderer;
     private readonly Input _input;
     private readonly ScriptEngine _scriptEngine = new();
+    private readonly Random _random = new();
+    private DateTimeOffset _lastPowerUpSpawn = DateTimeOffset.Now;
+    private const double PowerUpSpawnInterval = 10.0; 
 
     private readonly Dictionary<int, GameObject> _gameObjects = new();
     private readonly Dictionary<string, TileSet> _loadedTileSets = new();
@@ -88,6 +91,15 @@ public class Engine
             return;
         }
 
+        // Debug power-up spawning
+        var timeSinceLastSpawn = (currentTime - _lastPowerUpSpawn).TotalSeconds;
+        if (timeSinceLastSpawn >= PowerUpSpawnInterval)
+        {
+            Console.WriteLine($"Time to spawn power-up! {timeSinceLastSpawn} seconds since last spawn");
+            SpawnPowerUp();
+            _lastPowerUpSpawn = currentTime;
+        }
+
         double up = _input.IsUpPressed() ? 1.0 : 0.0;
         double down = _input.IsDownPressed() ? 1.0 : 0.0;
         double left = _input.IsLeftPressed() ? 1.0 : 0.0;
@@ -107,6 +119,8 @@ public class Engine
         {
             AddBomb(_player.Position.X, _player.Position.Y, false);
         }
+
+        CheckPowerUpCollection();
     }
 
     public void RenderFrame()
@@ -214,5 +228,58 @@ public class Engine
 
         TemporaryGameObject bomb = new(spriteSheet, 2.1, (worldCoords.X, worldCoords.Y));
         _gameObjects.Add(bomb.Id, bomb);
+    }
+
+    private void SpawnPowerUp()
+    {
+        if (_currentLevel.Width == null || _currentLevel.Height == null)
+        {
+            Console.WriteLine("Cannot spawn power-up: Level dimensions are null");
+            return;
+        }
+
+        int x = _random.Next(0, _currentLevel.Width.Value * (_currentLevel.TileWidth ?? 32));
+        int y = _random.Next(0, _currentLevel.Height.Value * (_currentLevel.TileHeight ?? 32));
+
+        Console.WriteLine($"Attempting to spawn power-up at position ({x}, {y})");
+        
+        try
+        {
+            SpriteSheet spriteSheet = SpriteSheet.Load(_renderer, "SpeedBoost.json", "Assets");
+            spriteSheet.ActivateAnimation("Idle");
+            var powerUp = new SpeedBoostPowerUp(spriteSheet, (x, y));
+            _gameObjects.Add(powerUp.Id, powerUp);
+            Console.WriteLine($"Successfully spawned power-up with ID {powerUp.Id}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to spawn power-up: {ex.Message}");
+        }
+    }
+
+    private void CheckPowerUpCollection()
+    {
+        if (_player == null) return;
+
+        var toRemove = new List<int>();
+        foreach (var gameObject in _gameObjects.Values)
+        {
+            if (gameObject is SpeedBoostPowerUp powerUp)
+            {
+                var deltaX = Math.Abs(_player.Position.X - powerUp.Position.X);
+                var deltaY = Math.Abs(_player.Position.Y - powerUp.Position.Y);
+                
+                if (deltaX < 32 && deltaY < 32)
+                {
+                    _player.ApplySpeedBoost(SpeedBoostPowerUp.GetSpeedMultiplier(), 5.0);
+                    toRemove.Add(powerUp.Id);
+                }
+            }
+        }
+
+        foreach (var id in toRemove)
+        {
+            _gameObjects.Remove(id);
+        }
     }
 }

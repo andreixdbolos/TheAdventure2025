@@ -110,4 +110,10 @@ public unsafe class GameRenderer
     {
         _sdl.RenderPresent(_renderer);
     }
+
+    public void FillRect(Rectangle<int> rect)
+    {
+        var translatedRect = _camera.ToScreenCoordinates(rect);
+        _sdl.RenderFillRect(_renderer, in translatedRect);
+    }
 }

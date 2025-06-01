@@ -1,0 +1,39 @@
+{
+  "FileName": "SpeedBoost.png",
+  "ImageWidth": 32,
+  "ImageHeight": 32,
+  "FrameWidth": 32,
+  "FrameHeight": 32,
+  "RowCount": 1,
+  "ColumnCount": 4,
+  "FrameCenter": {
+    "OffsetX": 16,
+    "OffsetY": 16
+  },
+  "Animations": {
+    "Idle": {
+      "StartFrame": {
+        "Row": 0,
+        "Col": 0
+      },
+      "EndFrame": {
+        "Row": 0,
+        "Col": 0
+      },
+      "DurationMs": 100,
+      "Loop": true
+    },
+    "Collect": {
+      "StartFrame": {
+        "Row": 0,
+        "Col": 1
+      },
+      "EndFrame": {
+        "Row": 0,
+        "Col": 3
+      },
+      "DurationMs": 300,
+      "Loop": false
+    }
+  }
+}

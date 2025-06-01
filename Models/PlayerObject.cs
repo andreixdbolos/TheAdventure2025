@@ -4,7 +4,16 @@ namespace TheAdventure.Models;
 
 public class PlayerObject : RenderableGameObject
 {
-    private const int _speed = 128; // pixels per second
+    private const int _baseSpeed = 128; 
+    private double _speedMultiplier = 1.0;
+    private DateTimeOffset _speedBoostEndTime;
+    private bool _hasSpeedBoost => _speedMultiplier > 1.0 && DateTimeOffset.Now < _speedBoostEndTime;
+
+    public double RemainingBoostTime => _hasSpeedBoost 
+        ? (_speedBoostEndTime - DateTimeOffset.Now).TotalSeconds 
+        : 0.0;
+
+    public bool HasSpeedBoost => _hasSpeedBoost;
 
     public enum PlayerStateDirection
     {
@@ -29,6 +38,12 @@ public class PlayerObject : RenderableGameObject
     public PlayerObject(SpriteSheet spriteSheet, int x, int y) : base(spriteSheet, (x, y))
     {
         SetState(PlayerState.Idle, PlayerStateDirection.Down);
+    }
+
+    public void ApplySpeedBoost(double multiplier, double duration)
+    {
+        _speedMultiplier = multiplier;
+        _speedBoostEndTime = DateTimeOffset.Now.AddSeconds(duration);
     }
 
     public void SetState(PlayerState state)
@@ -89,7 +104,13 @@ public class PlayerObject : RenderableGameObject
             return;
         }
 
-        var pixelsToMove = _speed * (time / 1000.0);
+        if (_speedMultiplier > 1.0 && DateTimeOffset.Now >= _speedBoostEndTime)
+        {
+            _speedMultiplier = 1.0;
+        }
+
+        var currentSpeed = _baseSpeed * _speedMultiplier;
+        var pixelsToMove = currentSpeed * (time / 1000.0);
 
         var x = Position.X + (int)(right * pixelsToMove);
         x -= (int)(left * pixelsToMove);
@@ -145,5 +166,34 @@ public class PlayerObject : RenderableGameObject
         }
 
         Position = (x, y);
+    }
+
+    public void Render(GameRenderer renderer)
+    {
+        base.Render(renderer);
+
+        if (HasSpeedBoost)
+        {
+            const int barWidth = 32;
+            const int barHeight = 4;
+            const int barYOffset = -20; 
+
+            renderer.SetDrawColor(100, 100, 100, 255);
+            renderer.FillRect(new Rectangle<int>(
+                Position.X - barWidth/2,
+                Position.Y + barYOffset,
+                barWidth,
+                barHeight
+            ));
+
+            var progress = RemainingBoostTime / 5.0; 
+            renderer.SetDrawColor(255, 255, 0, 255);
+            renderer.FillRect(new Rectangle<int>(
+                Position.X - barWidth/2,
+                Position.Y + barYOffset,
+                (int)(barWidth * progress),
+                barHeight
+            ));
+        }
     }
 }
