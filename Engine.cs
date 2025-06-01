@@ -19,6 +19,9 @@ public class Engine
     private readonly Dictionary<int, GameObject> _gameObjects = new();
     private readonly Dictionary<string, TileSet> _loadedTileSets = new();
     private readonly Dictionary<int, Tile> _tileIdMap = new();
+    private bool _isInvincible = false;
+    private DateTimeOffset _lastInvincibilityToggle = DateTimeOffset.Now;
+    private const double InvincibilityToggleCooldown = 0.5; // Half second cooldown between toggles
 
     private Level _currentLevel = new();
     private PlayerObject? _player;
@@ -91,7 +94,17 @@ public class Engine
             return;
         }
 
-        // Debug power-up spawning
+        if (_input.IsKeyIPressed())
+        {
+            var timeSinceLastToggle = (currentTime - _lastInvincibilityToggle).TotalSeconds;
+            if (timeSinceLastToggle >= InvincibilityToggleCooldown)
+            {
+                _isInvincible = !_isInvincible;
+                _lastInvincibilityToggle = currentTime;
+                Console.WriteLine($"Invincibility {( _isInvincible ? "enabled" : "disabled" )}");
+            }
+        }
+
         var timeSinceLastSpawn = (currentTime - _lastPowerUpSpawn).TotalSeconds;
         if (timeSinceLastSpawn >= PowerUpSpawnInterval)
         {
@@ -134,6 +147,12 @@ public class Engine
         RenderTerrain();
         RenderAllObjects();
 
+        var statusText = $"Invincibility: {(_isInvincible ? "ON" : "OFF")}";
+        _renderer.RenderText(statusText, _renderer.Window.Size.Width - 200, 20, 
+            _isInvincible ? (byte)0 : (byte)255, 
+            _isInvincible ? (byte)255 : (byte)0, 
+            (byte)0);
+
         _renderer.PresentFrame();
     }
 
@@ -161,7 +180,7 @@ public class Engine
             var tempGameObject = (TemporaryGameObject)gameObject!;
             var deltaX = Math.Abs(_player.Position.X - tempGameObject.Position.X);
             var deltaY = Math.Abs(_player.Position.Y - tempGameObject.Position.Y);
-            if (deltaX < 32 && deltaY < 32)
+            if (deltaX < 32 && deltaY < 32 && !_isInvincible)
             {
                 _player.GameOver();
             }

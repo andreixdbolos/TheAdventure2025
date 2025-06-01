@@ -13,10 +13,11 @@ public unsafe class GameRenderer
     private Renderer* _renderer;
     private GameWindow _window;
     private Camera _camera;
-
     private Dictionary<int, IntPtr> _texturePointers = new();
     private Dictionary<int, TextureData> _textureData = new();
     private int _textureId;
+
+    public GameWindow Window => _window;
 
     public GameRenderer(Sdl sdl, GameWindow window)
     {
@@ -115,5 +116,19 @@ public unsafe class GameRenderer
     {
         var translatedRect = _camera.ToScreenCoordinates(rect);
         _sdl.RenderFillRect(_renderer, in translatedRect);
+    }
+
+    public void RenderText(string text, int x, int y, byte r = 255, byte g = 255, byte b = 255)
+    {
+        int charWidth = 10;
+        int charHeight = 20;
+        int spacing = 2;
+
+        for (int i = 0; i < text.Length; i++)
+        {
+            var rect = new Rectangle<int>(x + (i * (charWidth + spacing)), y, charWidth, charHeight);
+            _sdl.SetRenderDrawColor(_renderer, r, g, b, 255);
+            _sdl.RenderDrawRect(_renderer, in rect);
+        }
     }
 }
